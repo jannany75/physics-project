@@ -1,242 +1,258 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Newton’s Rings Analyzer</title>
-
-<!-- OpenCV -->
-<script async src="https://docs.opencv.org/4.8.0/opencv.js"></script>
-
-<style>
-:root {
-  --primary: #2563eb;
-  --bg: #f1f5f9;
-  --card: #ffffff;
-}
-
-body {
-  margin: 0;
-  font-family: system-ui, Arial, sans-serif;
-  background: var(--bg);
-}
-
-header {
-  background: var(--primary);
-  color: white;
-  padding: 15px;
-  text-align: center;
-  font-size: 20px;
-  font-weight: bold;
-}
-
-.container {
-  max-width: 900px;
-  margin: auto;
-  padding: 15px;
-}
-
-.card {
-  background: var(--card);
-  border-radius: 12px;
-  padding: 15px;
-  margin-bottom: 15px;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.08);
-}
-
-.step {
-  font-weight: bold;
-  margin-bottom: 8px;
-}
-
-canvas {
-  width: 100%;
-  height: auto;
-  border-radius: 8px;
-  border: 1px solid #000;
-  touch-action: manipulation;
-}
-
-.controls {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
-  gap: 10px;
-}
-
-input, button {
-  padding: 12px;
-  font-size: 16px;
-  border-radius: 8px;
-  border: 1px solid #ccc;
-}
-
-button {
-  background: var(--primary);
-  color: white;
-  border: none;
-}
-
-button:active {
-  transform: scale(0.98);
-}
-
-table {
-  width: 100%;
-  border-collapse: collapse;
-  margin-top: 10px;
-}
-
-th, td {
-  border: 1px solid #ccc;
-  padding: 6px;
-  text-align: center;
-  font-size: 14px;
-}
-
-.result {
-  margin-top: 10px;
-  font-size: 18px;
-  font-weight: bold;
-  color: #16a34a;
-  text-align: center;
-}
-.note {
-  font-size: 14px;
-  color: #555;
-}
-</style>
-</head>
-
-<body>
-
-<header>Newton’s Rings Analyzer (OpenCV)</header>
-
-<div class="container">
-
-  <!-- STEP 1 -->
-  <div class="card">
-    <div class="step">Step 1: Upload Newton’s Rings Image</div>
-    <input type="file" id="imageInput" accept="image/*">
-  </div>
-
-  <!-- STEP 2 -->
-  <div class="card">
-    <div class="step">Step 2: Tap the Center of Rings</div>
-    <canvas id="canvas"></canvas>
-    <p class="note">Tap once at the center for accurate detection</p>
-  </div>
-
-  <!-- STEP 3 -->
-  <div class="card">
-    <div class="step">Step 3: Enter Parameters</div>
-    <div class="controls">
-      <input type="number" id="Rvalue" placeholder="Radius of curvature R (mm)">
-      <input type="number" id="ringsToUse" placeholder="Number of rings">
-      <button onclick="detectRings()">Analyze</button>
-    </div>
-  </div>
-
-  <!-- RESULTS -->
-  <div class="card">
-    <div class="step">Results</div>
-    <table id="table">
-      <tr>
-        <th>n</th>
-        <th>r (px)</th>
-        <th>r²</th>
-      </tr>
-    </table>
-    <div class="result" id="result"></div>
-  </div>
-
-</div>
-
-<script>
-let img = new Image();
-let canvas = document.getElementById("canvas");
-let ctx = canvas.getContext("2d");
-let center = null;
-
-document.getElementById("imageInput").addEventListener("change", e => {
-  img.src = URL.createObjectURL(e.target.files[0]);
-});
-
-img.onload = () => {
-  let scale = Math.min(window.innerWidth / img.width, 1);
-  canvas.width = img.width * scale;
-  canvas.height = img.height * scale;
-  ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-};
-
-canvas.addEventListener("click", e => {
-  const rect = canvas.getBoundingClientRect();
-  center = {
-    x: e.clientX - rect.left,
-    y: e.clientY - rect.top
-  };
-  ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-  ctx.beginPath();
-  ctx.arc(center.x, center.y, 6, 0, 2*Math.PI);
-  ctx.fillStyle = "red";
-  ctx.fill();
-});
-
-function detectRings() {
-  if (!center) return alert("Tap the center first");
-  if (typeof cv === "undefined") return alert("OpenCV still loading");
-
-  let src = cv.imread(canvas);
-  let gray = new cv.Mat();
-  let circles = new cv.Mat();
-
-  cv.cvtColor(src, gray, cv.COLOR_RGBA2GRAY);
-  cv.GaussianBlur(gray, gray, new cv.Size(9,9), 2);
-
-  cv.HoughCircles(gray, circles, cv.HOUGH_GRADIENT, 1, 25, 120, 30, 10, 0);
-
-  let R = parseFloat(document.getElementById("Rvalue").value);
-  let limit = parseInt(document.getElementById("ringsToUse").value);
-  if (!R || !limit) return alert("Enter R and number of rings");
-
-  let radii = [];
-  ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-
-  for (let i = 0; i < circles.cols; i++) {
-    let x = circles.data32F[i*3];
-    let y = circles.data32F[i*3+1];
-    let r = circles.data32F[i*3+2];
-    let d = Math.hypot(x - center.x, y - center.y);
-    if (d < 12) {
-      radii.push(r);
-      ctx.beginPath();
-      ctx.arc(x, y, r, 0, 2*Math.PI);
-      ctx.strokeStyle = "#2563eb";
-      ctx.stroke();
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Newton's Rings Wavelength Calculator</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 20px;
+      color: #333;
     }
-  }
+    h1 {
+      text-align: center;
+    }
+    #container {
+      position: relative;
+      display: inline-block;
+      border: 1px solid #ccc;
+      margin: 10px 0;
+    }
+    #uploadedImage {
+      display: block;
+      max-width: 100%;
+      height: auto;
+    }
+    /* Crosshair lines: initially hidden until image loads */
+    #vline {
+      display: none;
+      position: absolute;
+      width: 2px;
+      background: red;
+      top: 0; bottom: 0; left: 0;
+    }
+    #hline {
+      display: none;
+      position: absolute;
+      height: 2px;
+      background: red;
+      left: 0; right: 0; top: 0;
+    }
+    label {
+      display: block;
+      margin: 5px 0;
+    }
+    input[type="number"] {
+      width: 100%;
+      padding: 5px;
+      box-sizing: border-box;
+    }
+    #computeBtn {
+      padding: 10px 20px;
+      font-size: 16px;
+      margin-top: 10px;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 10px;
+    }
+    th, td {
+      border: 1px solid #888;
+      padding: 5px;
+      text-align: center;
+    }
+    #resultTable {
+      overflow-x: auto;
+    }
+    @media (max-width: 600px) {
+      #computeBtn {
+        width: 100%;
+      }
+    }
+  </style>
+</head>
+<body>
+  <h1>Newton's Rings Wavelength Calculator</h1>
+  <p>1. Upload a Newton's Rings image.</p>
+  <input type="file" id="fileInput" accept="image/*"><br>
+  <p>2. Drag the red crosshair to mark the center of the rings.</p>
+  <div id="container">
+    <img id="uploadedImage" alt="Newton's Rings Image">
+    <div id="vline"></div>
+    <div id="hline"></div>
+  </div>
+  <p>3. Enter parameters:</p>
+  <label>Radius of curvature R (mm): <input type="number" id="radiusR" step="any" placeholder="e.g. 1000"></label>
+  <label>Scale (mm/pixel): <input type="number" id="scale" step="any" placeholder="e.g. 0.01"></label>
+  <button id="computeBtn" disabled>Detect Rings &amp; Compute Wavelength</button>
+  <p id="status">OpenCV.js is loading...</p>
+  <p id="wavelength"></p>
+  <div id="resultTable"></div>
 
-  radii.sort((a,b)=>a-b);
-  radii = radii.slice(0, limit);
+  <!-- Load OpenCV.js -->
+  <script async src="https://docs.opencv.org/4.7.0/opencv.js" onload="onOpenCvReady();" type="text/javascript"></script>
+  <script>
+    // Get UI elements
+    const fileInput = document.getElementById('fileInput');
+    const uploadedImage = document.getElementById('uploadedImage');
+    const vline = document.getElementById('vline');
+    const hline = document.getElementById('hline');
+    const computeBtn = document.getElementById('computeBtn');
+    const radiusInput = document.getElementById('radiusR');
+    const scaleInput = document.getElementById('scale');
+    const resultDiv = document.getElementById('resultTable');
+    const wavelengthP = document.getElementById('wavelength');
+    const statusP = document.getElementById('status');
+    const container = document.getElementById('container');
 
-  let table = document.getElementById("table");
-  table.innerHTML = `<tr><th>n</th><th>r (px)</th><th>r²</th></tr>`;
+    let centerX = 0, centerY = 0;
+    let scaleX = 1, scaleY = 1;
+    let isDragging = false;
 
-  let sumNr2 = 0, sumN2 = 0;
-  radii.forEach((r,i)=>{
-    let n = i+1;
-    let r2 = r*r;
-    sumNr2 += n*r2;
-    sumN2 += n*n;
-    table.innerHTML += `<tr><td>${n}</td><td>${r.toFixed(1)}</td><td>${r2.toFixed(1)}</td></tr>`;
-  });
+    // Load image into <img> and show preview
+    fileInput.addEventListener('change', function(e) {
+      if (e.target.files.length > 0) {
+        let file = e.target.files[0];
+        uploadedImage.src = URL.createObjectURL(file);
+      }
+    });
 
-  let lambda = sumNr2 / (R * sumN2);
-  document.getElementById("result").innerText =
-    `Calculated Wavelength λ ≈ ${lambda.toFixed(2)} (pixel²/mm)`;
+    // Once image loads, compute scaling and show crosshair at center
+    uploadedImage.addEventListener('load', function() {
+      // Compute ratio of actual image size to displayed size
+      scaleX = uploadedImage.naturalWidth / uploadedImage.clientWidth;
+      scaleY = uploadedImage.naturalHeight / uploadedImage.clientHeight;
+      // Set initial center (actual image coords) at mid-point
+      centerX = (uploadedImage.clientWidth / 2) * scaleX;
+      centerY = (uploadedImage.clientHeight / 2) * scaleY;
+      // Show and position the crosshair lines
+      vline.style.display = 'block';
+      hline.style.display = 'block';
+      vline.style.left = (uploadedImage.clientWidth / 2) + 'px';
+      hline.style.top = (uploadedImage.clientHeight / 2) + 'px';
+    });
 
-  src.delete(); gray.delete(); circles.delete();
-}
-</script>
+    // Handlers for dragging the crosshair
+    container.addEventListener('mousedown', function(e) {
+      isDragging = true;
+      moveCrosshair(e);
+    });
+    document.addEventListener('mousemove', function(e) {
+      if (isDragging) moveCrosshair(e);
+    });
+    document.addEventListener('mouseup', function(e) {
+      isDragging = false;
+    });
+    container.addEventListener('touchstart', function(e) {
+      isDragging = true;
+      moveCrosshair(e.touches[0]);
+      e.preventDefault();
+    }, {passive: false});
+    document.addEventListener('touchmove', function(e) {
+      if (isDragging) {
+        moveCrosshair(e.touches[0]);
+        e.preventDefault();
+      }
+    }, {passive: false});
+    document.addEventListener('touchend', function(e) {
+      isDragging = false;
+    });
 
+    function moveCrosshair(e) {
+      const rect = container.getBoundingClientRect();
+      let x_disp = e.clientX - rect.left;
+      let y_disp = e.clientY - rect.top;
+      // Clamp within image bounds
+      x_disp = Math.max(0, Math.min(x_disp, uploadedImage.clientWidth));
+      y_disp = Math.max(0, Math.min(y_disp, uploadedImage.clientHeight));
+      // Update actual center coordinates
+      centerX = x_disp * scaleX;
+      centerY = y_disp * scaleY;
+      // Move the red lines
+      vline.style.left = x_disp + 'px';
+      hline.style.top = y_disp + 'px';
+    }
+
+    // Called when OpenCV.js is loaded
+    function onOpenCvReady() {
+      statusP.innerText = 'OpenCV.js is ready.';
+      computeBtn.disabled = false;
+    }
+
+    // Process image when button is clicked
+    computeBtn.addEventListener('click', function() {
+      // Clear old results
+      resultDiv.innerHTML = '';
+      wavelengthP.innerText = '';
+      // Read user inputs
+      let R = parseFloat(radiusInput.value);
+      let scale = parseFloat(scaleInput.value);
+      if (isNaN(R) || isNaN(scale) || R <= 0 || scale <= 0) {
+        alert('Please enter valid positive numbers for R and scale.');
+        return;
+      }
+      if (!uploadedImage.src) {
+        alert('Please upload an image first.');
+        return;
+      }
+      // Load image into OpenCV Mat
+      let src = cv.imread(uploadedImage);
+      cv.cvtColor(src, src, cv.COLOR_RGBA2GRAY);
+      cv.medianBlur(src, src, 5);
+      // Detect circles (rings)
+      let circles = new cv.Mat();
+      cv.HoughCircles(src, circles, cv.HOUGH_GRADIENT, 1, 20, 100, 30, 0, 0);
+      src.delete();
+      if (circles.cols === 0) {
+        alert('No circles detected. Try a different image or adjust parameters.');
+        circles.delete();
+        return;
+      }
+      // Filter rings near the selected center
+      let ringRadii = [];
+      for (let i = 0; i < circles.cols; ++i) {
+        let x = circles.data32F[i*3];
+        let y = circles.data32F[i*3 + 1];
+        let r = circles.data32F[i*3 + 2];
+        let dx = x - centerX;
+        let dy = y - centerY;
+        let dist = Math.hypot(dx, dy);
+        if (dist < 10) { // tolerance (px)
+          ringRadii.push(r);
+        }
+      }
+      circles.delete();
+      if (ringRadii.length === 0) {
+        alert('No concentric rings found near the marked center.');
+        return;
+      }
+      ringRadii.sort((a, b) => a - b);
+      // Build results table
+      let html = '<table><tr><th>Ring n</th><th>Radius (px)</th><th>Radius (mm)</th><th>r\u00b2 (mm\u00b2)</th></tr>';
+      let sumLambda = 0;
+      for (let i = 0; i < ringRadii.length; i++) {
+        let n = i + 1;
+        let rp = ringRadii[i];
+        let rmm = rp * scale;
+        let r2 = rmm * rmm;
+        let lambda = r2 / (n * R);  // in mm
+        sumLambda += lambda;
+        html += '<tr>';
+        html += '<td>' + n + '</td>';
+        html += '<td>' + rp.toFixed(2) + '</td>';
+        html += '<td>' + rmm.toFixed(4) + '</td>';
+        html += '<td>' + r2.toFixed(6) + '</td>';
+        html += '</tr>';
+      }
+      html += '</table>';
+      resultDiv.innerHTML = html;
+      // Compute and display average wavelength (in nm)
+      let avgLambda = sumLambda / ringRadii.length; // mm
+      let avgLambda_nm = avgLambda * 1e6;
+      wavelengthP.innerText = 'Estimated wavelength: ' + avgLambda_nm.toFixed(2) + ' nm (averaged over ' + ringRadii.length + ' rings)';
+    });
+  </script>
 </body>
 </html>
